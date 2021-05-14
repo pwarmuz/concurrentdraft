@@ -10,6 +10,7 @@ func TestBuildConcurrentData(t *testing.T) {
 	}{
 		{want: 1000},
 		{want: 10000},
+		{want: 100000},
 	}
 
 	for _, test := range tests {

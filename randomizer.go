@@ -39,7 +39,7 @@ func (x *Randomizer) Weight() int {
 	return t
 }
 
-// Assign random data to channel recieving individual data
+// Assign random data to channel receiving individual data
 func (x *Randomizer) Assign(ch chan<- individual) {
 	x.mu.Lock()
 	a := x.Age()
