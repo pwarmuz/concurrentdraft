@@ -47,15 +47,35 @@ func BuildDataConcurrently(data *DataStore) {
 	var gRand Randomizer
 	gRand.Initialize()
 
-	// Generate random individual data
-	for i := 0; i < cap(data.Individuals); i++ {
-		go gRand.Assign(ch)
-	}
+	go func() {
+		// Generate random individual data
+		// Seems to be a cap of 1 million
+		// before linux complains that go routines are dying
+		// I think it's related with the details := range ch loop later
+		capped := 7000
+		expectedCap := cap(data.Individuals)
+		for expectedCap > 0 {
+			switch {
+			case expectedCap <= capped:
+				for i := 0; i < expectedCap; i++ {
+					go gRand.Assign(ch)
+				}
+				expectedCap -= expectedCap
+			case expectedCap > capped:
+				for i := 0; i < capped; i++ {
+					go gRand.Assign(ch)
+				}
+				expectedCap -= capped
+			}
+		}
+	}()
 
 	// Append it to data.
 	// data was initially created with 0 length so this appends from the beginning
 	go func() {
 		for details := range ch {
+			// this should be concurrent safe because only one instance of details are being processed
+			// and channels are concurrent safe if they aren't buffered
 			data.Individuals = append(data.Individuals, details)
 			wg.Done() // decrease waitgroup count
 		}
@@ -132,7 +152,7 @@ func FanInData(chans ...<-chan individual) <-chan individual {
 func main() {
 	var data DataStore
 	want := 100
-	data.Capacity(100)
+	data.Capacity(10000)
 
 	// Build initial data
 	BuildDataConcurrently(&data)
@@ -150,4 +170,5 @@ func main() {
 	for i := 0; i < 5; i++ {
 		fmt.Printf("%d\n", data.Individuals[i])
 	}
+	fmt.Println("DataStore Capacity ", cap(data.Individuals))
 }
